@@ -58,14 +58,16 @@ if (empty($error) && !empty($_REQUEST['payload'])) {
 		# check if we have a config file for current repository
 		# from submited data
 		# need to be like $repo_conf [ repo_url ]; 
-		if (isset($repo_conf[@$payload['repository']['url']])) {
-			if (strpos($payload['ref'], $repo_conf[$payload['repository']['url']]['branch']) !== false) {
+		$repo_absolute_url = $payload['canon_url'] . $payload['repository']['absolute_url'];
+		if (isset($repo_conf[$repo_absolute_url])) {
+			//TODO move in config `master`
+			if (strpos($payload['commits']['branch'], $repo_conf[$repo_absolute_url]['branch']) !== false) {
 				$log .= 'SYNC CONFIG FOUND'.PHP_EOL.PHP_EOL;
-				$sync_conf = &$repo_conf[$payload['repository']['url']];
+				$sync_conf = &$repo_conf[$repo_absolute_url];
 			}
-			else $error = 'Commit not to "'.$repo_conf[$repo_conf[$payload['repository']['url']]].'" branch. Ignore';
+			else $error = 'Commit not to "'.$repo_conf[$repo_conf[$repo_absolute_url]].'" branch. Ignore';
 		}
-		else $error = 'Post-commit webhook not configured for sync "'.$payload['repository']['url'].'" repository';
+		else $error = 'Post-commit webhook not configured for sync "'.$repo_absolute_url.'" repository';
 	}
 	else $error = 'Can\'t decode payload variable';
 }
@@ -80,7 +82,7 @@ if (empty($error)) $log .= PHP_EOL.'------------------------------ Config check'
 if (empty($error) && !empty($sync_conf)) {
 
 	# update cache dir for this repository
-	$cache_dir = __CACHE_DIR__.(substr(__CACHE_DIR__,-1) != '/' ? '/' : '').urlencode($payload['repository']['url']);
+	$cache_dir = __CACHE_DIR__.(substr(__CACHE_DIR__,-1) != '/' ? '/' : '').urlencode($repo_absolute_url);
 	$log .= 'Cache dir: '.$cache_dir.PHP_EOL;
 	
 	$log .= 'Hosts to sync: '.$hosts.PHP_EOL.'=========='.PHP_EOL;
@@ -125,7 +127,7 @@ if (empty($error) && !empty($sync_task)) {
 	# prepare for clone repo or update it
 	$updated = false;
 	$git = array (
-		'$repo_url'	=> str_replace('http://', 'git://', $payload['repository']['url']).'.git',
+		'$repo_url'	=> str_replace('http://', 'https://', $repo_absolute_url).'.git',
 		'$cache_dir'	=> $cache_dir,
 	);
 
